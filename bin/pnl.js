@@ -2,6 +2,7 @@
 import { c, footer, getTx, isAddress, main, parseArgs, rpc, short, table, pad } from "../lib/core.js";
 import { parseWalletTx, solUsd, tokenInfo } from "../lib/swaps.js";
 import { computePnl } from "../lib/pnl.js";
+import { sol, usdOf } from "../lib/format.js";
 
 const HELP = `solana-pnl-tracker: profit and loss for any Solana wallet, in SOL
 
@@ -19,7 +20,6 @@ Environment:
                   a second, so 100 transactions take about two minutes.
 `;
 
-const sol = (n, digits = 3) => (n === null || n === undefined ? c.dim("?") : (n >= 0 ? "+" : "") + n.toFixed(digits));
 const tint = (n, text) => (n === null || n === undefined ? text : n > 0.0005 ? c.green(text) : n < -0.0005 ? c.red(text) : text);
 
 main(async () => {
@@ -65,8 +65,8 @@ main(async () => {
   console.log(c.dim(`${sigs.length} transactions, ${day(span.from)} to ${day(span.to)}  ·  ${trades.length} token trades in ${t.tokens} tokens\n`));
   if (!result.rows.length) { console.log("No token buys or sells in this window. Try a larger --txs."); return; }
 
-  const usdOf = (n) => (solPrice ? c.dim(` ($${Math.abs(n * solPrice) >= 1000 ? (n * solPrice / 1000).toFixed(1) + "K" : (n * solPrice).toFixed(0)})`) : "");
-  console.log(`  ${pad("Realized (cash)", 22)} ${tint(t.realized, c.bold(sol(t.realized) + " SOL"))}${usdOf(t.realized)}`);
+  const usd = usdOf(t.realized, solPrice);
+  console.log(`  ${pad("Realized (cash)", 22)} ${tint(t.realized, c.bold(sol(t.realized) + " SOL"))}${usd ? c.dim(usd) : ""}`);
   console.log(`  ${pad("Open positions", 22)} cost ${t.openCost.toFixed(3)} SOL, worth ${t.openValue.toFixed(3)} SOL now (${tint(t.unrealized, sol(t.unrealized) + " SOL")} on paper)`);
   if (t.unpriced) console.log(c.dim(`  ${pad("", 22)} ${t.unpriced} open position${t.unpriced > 1 ? "s have" : " has"} no price and count as zero.`));
   console.log(`  ${pad("Win rate", 22)} ${t.winRate === null ? "-" : `${t.winRate.toFixed(0)}% (${t.wins} of ${t.closed} tokens sold at a profit)`}`);
