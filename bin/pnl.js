@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { c, footer, getTx, isAddress, main, parseArgs, rpc, short, table, pad } from "../lib/core.js";
 import { parseWalletTx, solUsd, tokenInfo } from "../lib/swaps.js";
-import { computePnl } from "../lib/pnl.js";
+import { computePnl, spanOf } from "../lib/pnl.js";
 
 const HELP = `solana-pnl-tracker: profit and loss for any Solana wallet, in SOL
 
@@ -55,14 +55,14 @@ main(async () => {
   for (const [mint, t] of info) if (t?.priceUsd && solPrice) prices.set(mint, t.priceUsd / solPrice);
   const result = computePnl([...trades].reverse(), { prices, solUsd: solPrice });
   for (const r of result.rows) r.symbol = info.get(r.mint)?.symbol || null;
-  const span = { from: sigs.at(-1).blockTime * 1000, to: sigs[0].blockTime * 1000 };
+  const span = spanOf(sigs);
 
   if (args.json) { console.log(JSON.stringify({ wallet, transactions: sigs.length, unreadable, span, solUsd: solPrice, ...result }, null, 2)); return; }
 
   const t = result.totals;
   const day = (ms) => new Date(ms).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
   console.log(`\n${c.bold("Wallet PnL")}  ${c.dim(wallet)}`);
-  console.log(c.dim(`${sigs.length} transactions, ${day(span.from)} to ${day(span.to)}  ·  ${trades.length} token trades in ${t.tokens} tokens\n`));
+  console.log(c.dim(`${sigs.length} transactions${span ? `, ${day(span.from)} to ${day(span.to)}` : ""}  ·  ${trades.length} token trades in ${t.tokens} tokens\n`));
   if (!result.rows.length) { console.log("No token buys or sells in this window. Try a larger --txs."); return; }
 
   const usdOf = (n) => (solPrice ? c.dim(` ($${Math.abs(n * solPrice) >= 1000 ? (n * solPrice / 1000).toFixed(1) + "K" : (n * solPrice).toFixed(0)})`) : "");

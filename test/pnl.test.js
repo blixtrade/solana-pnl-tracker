@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { computePnl } from "../lib/pnl.js";
+import { computePnl, spanOf } from "../lib/pnl.js";
 
 let clock = 0;
 const buy = (mint, tokens, solSpent) => ({ type: "buy", mint, tokenAmount: tokens, quote: "SOL", quoteAmount: solSpent, time: ++clock, fee: 0.00001 });
@@ -90,4 +90,10 @@ test("a sell only matches tokens still held after earlier sells", () => {
   near(rows[0].unmatched, 4);
   assert.equal(rows[0].open, 100);
   near(rows[0].openCost, 3);
+});
+
+test("spanOf uses the oldest and newest signatures that have a blockTime", () => {
+  assert.deepEqual(spanOf([{ blockTime: 300 }, { blockTime: 200 }, { blockTime: 100 }]), { from: 100000, to: 300000 });
+  assert.deepEqual(spanOf([{ blockTime: 300 }, { blockTime: 200 }, { blockTime: null }]), { from: 200000, to: 300000 });
+  assert.equal(spanOf([{ blockTime: null }, { blockTime: null }]), null);
 });
